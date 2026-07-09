@@ -1,0 +1,82 @@
+# Phase 5c-1: Qdrant replaces embedded ChromaDB.
+# Note the chroma_db volume mount on query-service is GONE — services
+# now talk to the vector DB over the network like every other dependency.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: rag-postgres
+    environment:
+      POSTGRES_USER: raguser
+      POSTGRES_PASSWORD: ragpass
+      POSTGRES_DB: ragdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U raguser -d ragdb"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: rag-redis
+    ports:
+      - "6379:6379"
+
+  qdrant:
+    image: qdrant/qdrant:v1.12.5
+    container_name: rag-qdrant
+    ports:
+      - "6333:6333"   # HTTP API (and web dashboard at /dashboard)
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+  query-service:
+    build: ./services/query-service
+    container_name: rag-query-service
+    environment:
+      POSTGRES_DSN: postgresql://raguser:ragpass@postgres:5432/ragdb
+      LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OLLAMA_URL: http://host.docker.internal:11434/api/generate
+      OLLAMA_MODEL: llama3.2
+      QDRANT_URL: http://qdrant:6333
+      REDIS_URL: redis://redis:6379/0
+      MIN_SIMILARITY: "0.10"
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+      redis:
+        condition: service_started
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  ingestion-service:
+    build: ./services/ingestion-service
+    container_name: rag-ingestion-service
+    environment:
+      QDRANT_URL: http://qdrant:6333
+    ports:
+      - "8100:8100"
+    depends_on:
+      qdrant:
+        condition: service_started
+
+  web-ui:
+    build: ./web-ui
+    container_name: rag-web-ui
+    ports:
+      - "3000:80"
+    depends_on:
+      - query-service
+
+volumes:
+  pgdata:
+  qdrant_data:

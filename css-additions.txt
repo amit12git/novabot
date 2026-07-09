@@ -1,0 +1,52 @@
+/* ---- APPEND to web-ui/src/styles.css ---- */
+
+.masthead-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.upload-btn {
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  border-radius: var(--radius);
+  padding: 8px 16px;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.upload-btn:hover {
+  background: var(--accent-soft);
+}
+
+.upload-btn:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.upload-status {
+  margin-top: 10px;
+  font-size: 13px;
+  padding: 7px 12px;
+  border-radius: 8px;
+}
+
+.upload-status.working {
+  background: #efece4;
+  color: var(--ink-soft);
+}
+
+.upload-status.done {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.upload-status.error {
+  background: #fbecea;
+  color: #a33529;
+}
